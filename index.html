@@ -1,0 +1,127 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            background-color: wheat;
+        }
+
+        canvas {
+            background-color: white;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="display" width="800" height="600"></canvas>
+    <button id="delaunay">Триангуляция Делоне</button>
+    <button id="voronoi">Диаграмма Вороной</button>
+    <button id="reset">Сбросить</button>
+</body>
+
+<script>
+    let points = [];
+    const canvas = document.getElementById("display");
+    const ctx = canvas.getContext("2d");
+    const btnDelaunay = document.getElementById("delaunay");
+    const btnVoronoi = document.getElementById("voronoi");
+    const btnReset = document.getElementById("reset");
+
+    canvas.addEventListener("click", (event) => {
+        points.push(
+            {x: Math.round(event.clientX), y: Math.round(event.clientY)}
+        );
+
+        renderPoints(points);
+    });
+
+    function renderPoints(points) {
+        points.forEach((val) => {
+            ctx.fillRect(val.x, val.y, 5, 5);
+        })
+    }
+
+    function requestSolution(method, points) {
+        let url = "http://localhost:3000";
+        fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ method: method, points: points })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (method == "delaunay") {
+                let triangles = data;
+                let resultPoints = [];
+                for (const triangle of triangles) {
+                    resultPoints = resultPoints.concat(getLineDDAPoints(points[triangle[0]], points[triangle[1]]));
+                    resultPoints = resultPoints.concat(getLineDDAPoints(points[triangle[1]], points[triangle[2]]));
+                    resultPoints = resultPoints.concat(getLineDDAPoints(points[triangle[0]], points[triangle[2]]));
+                }
+                renderPoints(resultPoints);
+            } else if (method == "voronoi") {
+                const cells = data;
+                let resultPoints = [];
+                for (const cell of cells) {
+                    const halfEdges = cell.halfedges;
+                    console.log(cell);
+                    for (const halfEdge of halfEdges) {
+                        const edge = halfEdge.edge;
+
+                        resultPoints = resultPoints.concat(getLineDDAPoints(edge.va, edge.vb));         
+                    }
+                }
+                renderPoints(resultPoints);
+            }
+        })
+        .catch(error => console.error("Error:", error));
+    }
+
+    btnDelaunay.addEventListener("click", (event) => {
+        requestSolution("delaunay", points);
+    });
+
+    btnVoronoi.addEventListener("click", (event) => {
+        requestSolution("voronoi", points);
+    });
+
+    btnReset.addEventListener("click", (event) => {
+        points = [];
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+
+    function getLineDDAPoints(start, end) {
+        let points = [];
+
+        if (start.x == end.x && start.y == end.y) {
+            return {x: start.x, y: start.y};
+        }
+
+        let length = Math.max(Math.abs(end.x - start.x), Math.abs(end.y - start.y));
+
+        let dx = (end.x - start.x) / length;
+        let dy = (end.y - start.y) / length;
+
+        let x = Math.round(start.x);
+        let y = Math.round(start.y);
+
+        points.push({x: x, y: y});
+
+        let i = 0;
+        while (i <= length) {
+            x = x + dx;
+            y = y + dy;
+
+            points.push({x: Math.round(x), y: Math.round(y)});
+            i++;
+        }
+
+        return points;
+    }
+</script>
+
+</html>

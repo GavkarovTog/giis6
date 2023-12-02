@@ -1,0 +1,15 @@
+{
+  "name": "vordel",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "delaunay-triangulate": "^1.1.6",
+    "voronoi": "^1.0.0"
+  }
+}
